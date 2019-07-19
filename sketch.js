@@ -8,11 +8,9 @@ let started = false;
 function setup() {
     createCanvas(windowWidth, windowHeight);
     background(backgroundColour);
-    noStroke();
-    noFill();
     mic = new p5.AudioIn();
     mic.start();
-
+    noFill();
     setupStars();
 
     for (var i = 0; i < 20; i++) {
@@ -29,7 +27,6 @@ function draw() {
         stroke(255);
         stars.forEach(star => point(star.x, star.y, 1))
 
-        //noStroke();
         if (mic.enabled) {
             listeners.forEach(x => x.listen());
         }
@@ -58,35 +55,37 @@ class Listener {
         this.soundFile.pan(this.pan);
         this.soundFile.rate(this.speed);
 
-        this.playtime = 0.1;
+        this.playtime = this.interval;
     }
 
     listen() {
 
-        if (this.state === "Playing") {
-            this.playtime += 0.01;
-        } else {
-            this.playtime -= 0.1;
-        }
-
-        if (this.playtime < 0) {
-            this.playtime = 0;
-        }
+        this.playtime--;
 
         if (this.state === "Recording" && this.counter % this.interval === 0) {
             this.counter++;
+            this.playtime = this.interval;
             this.play();
         }
 
         if (this.state === "Playing" && this.counter % this.interval === 0) {
+            this.playtime = this.interval;
             this.record();
         }
 
         const spectrum = this.fft.analyze();
 
-        for (var i = 0; i < this.bins; i++) {
-            stroke(255 - spectrum[i], 255 - (this.playtime * 100))
-            ellipse(this.x, this.y, (spectrum[i] * this.playtime))
+        point(this.x, this.y)
+
+        if (this.state === "Playing") {
+            for (var i = 0; i < this.bins; i++) {
+                noFill();
+                stroke(255 - spectrum[i], map(this.playtime, 0, this.interval, 0, 255))
+                ellipse(this.x, this.y, spectrum[i])
+            }
+        } else {
+            stroke(255, map(this.playtime, 0, this.interval, 255, 0))
+            ellipse(this.x, this.y, this.playtime / 2)
         }
 
         this.counter++;
@@ -118,13 +117,13 @@ function mousePressed() {
 function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
     setupStars();
-  }
+}
 
-  function setupStars() {
+function setupStars() {
     stars = [];
 
     for (var i = 0; i < 250; i++) {
         const star = createVector(random(width), random(height));
         stars.push(star);
     }
-  }
+}
